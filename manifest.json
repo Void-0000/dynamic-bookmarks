@@ -1,0 +1,17 @@
+{
+    "name": "Dynamic Bookmarks",
+    "manifest_version": 3,
+    "version": "1.0.0",
+    "background": {
+        "service_worker": "background.js"
+    },
+    "permissions": [
+        "webNavigation", "bookmarks", "tabs"
+    ],
+    "host_permissions": [
+        "<all_urls>"
+    ],
+    "icons": {
+        "128": "icon.png"
+    }
+}
