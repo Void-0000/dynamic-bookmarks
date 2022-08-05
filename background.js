@@ -1,28 +1,47 @@
-tabsToBookmarks = {}; //Failsafe in case of two different dynamic bookmark tabs being open at once.
+tabsToBookmarks = {};
+groupId = undefined;
 
-chrome.webNavigation.onCompleted.addListener(function(details){
-    findDynamicBookmark(details.url, function(dynamicBookmark){
-        if (dynamicBookmark != undefined) {
-            dynamicBookmarkTabId = details.tabId;
-            tabsToBookmarks[dynamicBookmarkTabId] = dynamicBookmark; //Failsafe
-            chrome.tabs.group({tabIds: dynamicBookmarkTabId}, function(groupId){
-                chrome.webNavigation.onCompleted.addListener(function(details){
-                    if (details.tabId == dynamicBookmarkTabId) {
-                        chrome.tabs.get(details.tabId, function(tab){
-                            var newUrl = tab.url;
-                            if (!newUrl.endsWith("?dynamic-bookmark")) {
-                                newUrl = newUrl +"?dynamic-bookmark";
-                            }
-                            if (tabsToBookmarks[dynamicBookmarkTabId] == dynamicBookmark) { //More failsafe
-                                chrome.bookmarks.update(dynamicBookmark.id, {url: newUrl});
-                            }
-                        });
-                    }
+
+
+loadTabsFromSession(function(tabsData, groupData){
+    console.log(tabsToBookmarks);
+    tabsToBookmarks = tabsData;
+    if (tabsToBookmarks == undefined) {
+        tabsToBookmarks = {};
+    }
+    console.log(tabsToBookmarks);
+    groupId = groupData;
+    everything();
+});
+
+function everything() {
+    chrome.webNavigation.onCompleted.addListener(function(details){
+        findDynamicBookmark(details.url, function(dynamicBookmark){
+            if (dynamicBookmark != undefined) {
+                tabsToBookmarks[details.tabId] = dynamicBookmark;
+                chrome.tabs.group({tabIds: details.tabId, groupId: undefined}, function(groupId2){ //groupId set to undefined for now
+                    groupId = groupId2;
+                    saveTabsToSession(tabsToBookmarks, groupId, function(){
+                    });
                 });
-            });
-        }
-    });
-},{url: [{querySuffix: "?dynamic-bookmark"}]});
+            }
+        });
+    },{url: [{querySuffix: "?dynamic-bookmark"}]});
+}
+
+chrome.webNavigation.onCompleted.addListener(function(details2) { //Second Listener
+    console.log(tabsToBookmarks);
+    if (Object.keys(tabsToBookmarks).includes(details2.tabId.toString())) {
+        chrome.tabs.get(details2.tabId, function(tab) {
+            newUrl = tab.url;
+            if (!newUrl.endsWith("?dynamic-bookmark")) {
+                newUrl = newUrl +"?dynamic-bookmark";
+            }
+            chrome.bookmarks.update(tabsToBookmarks[tab.id].id, {url: newUrl});
+        });
+    }
+});
+
 
 function findDynamicBookmark(url, callback){
     chrome.bookmarks.search({title:"Dynamic Bookmarks"}, function(results){
@@ -36,5 +55,17 @@ function findDynamicBookmark(url, callback){
             });
             callback(dynamicBookmark);
         })
+    });
+}
+
+function saveTabsToSession(dataTabs, dataGroup, callback) {
+    console.log(dataTabs);
+    chrome.storage.session.set({tabsData: dataTabs, groupData: dataGroup}, callback());
+}
+
+function loadTabsFromSession(callback) {
+    chrome.storage.session.get(["tabsData", "groupData"], function(results){
+        console.log(results.tabsData);
+        callback(results.tabsData, results.groupData);
     });
 }
