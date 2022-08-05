@@ -27,20 +27,20 @@ function everything() {
             }
         });
     },{url: [{querySuffix: "?dynamic-bookmark"}]});
-}
 
-chrome.webNavigation.onCompleted.addListener(function(details2) { //Second Listener
-    console.log(tabsToBookmarks);
-    if (Object.keys(tabsToBookmarks).includes(details2.tabId.toString())) {
-        chrome.tabs.get(details2.tabId, function(tab) {
-            newUrl = tab.url;
-            if (!newUrl.endsWith("?dynamic-bookmark")) {
-                newUrl = newUrl +"?dynamic-bookmark";
-            }
-            chrome.bookmarks.update(tabsToBookmarks[tab.id].id, {url: newUrl});
-        });
-    }
-});
+    chrome.webNavigation.onCompleted.addListener(function(details2) { //Second Listener
+        console.log(tabsToBookmarks);
+        if (Object.keys(tabsToBookmarks).includes(details2.tabId.toString())) {
+            chrome.tabs.get(details2.tabId, function(tab) {
+                newUrl = tab.url;
+                if (!newUrl.endsWith("?dynamic-bookmark")) {
+                    newUrl = newUrl +"?dynamic-bookmark";
+                }
+                chrome.bookmarks.update(tabsToBookmarks[tab.id].id, {url: newUrl});
+            });
+        }
+    });
+}
 
 
 function findDynamicBookmark(url, callback){
